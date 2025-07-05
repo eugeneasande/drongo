@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>DRONGO AUTONOMOUS - Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js library for data visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f1f5f9; /* slate-100 */
+    }
+    .pagination-btn.active {
+      background-color: #f0fdfa; /* teal-50 */
+      border-color: #14b8a6; /* teal-500 */
+      color: #0f766e; /* teal-700 */
+      font-weight: 600;
+    }
+    .stat-card {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    .modal-overlay {
+        transition: opacity 0.3s ease;
+    }
+    .modal-container {
+        transition: transform 0.3s ease;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- Admin Header -->
+  <header class="bg-white shadow-sm sticky top-0 z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center space-x-4">
+          <i class="fas fa-shield-halved text-teal-600 text-2xl"></i>
+          <h1 class="text-xl font-semibold text-slate-900">DRONGO Admin</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center">
+             <div class="ml-3 text-right">
+              <p class="text-sm font-medium text-slate-700">Admin User</p>
+              <p class="text-xs font-medium text-slate-500">Administrator</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Animated Stats Section -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <!-- Sales Period Card -->
+      <div class="stat-card bg-white rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-slate-500">Sales</p>
+            <select id="salesPeriod" class="border-gray-300 rounded-md shadow-sm text-xs p-1 bg-slate-50 focus:ring-teal-500 focus:border-teal-500">
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+              <option value="all">All Time</option>
+            </select>
+        </div>
+        <p id="salesPeriodValue" class="text-3xl font-bold text-teal-600 mt-2">0</p>
+      </div>
+      <!-- Total Receipts Card -->
+      <div class="stat-card bg-white rounded-lg shadow p-5">
+          <p class="text-sm font-medium text-slate-500">Total Receipts</p>
+          <p id="totalReceipts" class="text-3xl font-bold text-slate-900 mt-2">0</p>
+      </div>
+      <!-- Average Sale Card -->
+      <div class="stat-card bg-white rounded-lg shadow p-5">
+          <p class="text-sm font-medium text-slate-500">Average Sale</p>
+          <p id="avgSale" class="text-3xl font-bold text-slate-900 mt-2">0</p>
+      </div>
+      <!-- Top User Card -->
+      <div class="stat-card bg-white rounded-lg shadow p-5">
+          <p class="text-sm font-medium text-slate-500">Top User</p>
+          <p id="topUser" class="text-xl font-bold text-slate-900 mt-2">-</p>
+      </div>
+      <!-- Sales for Selected Day Card -->
+      <div class="stat-card bg-white rounded-lg shadow p-5">
+        <div class="flex items-center justify-between">
+            <p class="text-sm font-medium text-slate-500">Sales for Day</p>
+            <input type="date" id="salesDatepicker" class="border-gray-300 rounded-md shadow-sm text-xs p-1 bg-slate-50 focus:ring-teal-500 focus:border-teal-500">
+        </div>
+        <p id="selectedDaySales" class="text-3xl font-bold text-indigo-600 mt-2">Ksh 0</p>
+      </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <!-- Sales Trend Line Chart -->
+        <div class="lg:col-span-2 bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-800 mb-4">Last 7 Days Sales Trend</h2>
+            <div class="h-64">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+        <!-- Sales by User Doughnut Chart -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-800 mb-4">Sales by User</h2>
+            <div class="h-64 flex items-center justify-center">
+                <canvas id="userSalesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Receipt Records Table -->
+    <div class="bg-white shadow-md rounded-lg">
+        <div class="p-4 flex flex-wrap md:flex-nowrap items-center justify-between gap-4 border-b border-slate-200">
+            <h2 class="text-xl font-bold text-slate-800 flex-shrink-0">Receipt Records</h2>
+            <!-- Search Input -->
+            <div class="relative w-full md:w-auto">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-search text-gray-400"></i>
+              </div>
+              <input type="text" id="searchInput"
+                class="pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 placeholder-gray-400"
+                placeholder="Search records..." />
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm text-slate-500">Show</span>
+                  <select class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md" id="perPageSelect">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <div class="relative inline-block text-left">
+                  <div>
+                    <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500" id="export-menu-button">
+                      Export
+                      <i class="fas fa-chevron-down -mr-1 ml-2 h-5 w-5"></i>
+                    </button>
+                  </div>
+                  <div class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10" id="export-menu">
+                    <div class="py-1">
+                        <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" id="export-excel">Export to Excel</a>
+                        <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" id="export-pdf">Export to PDF</a>
+                    </div>
+                  </div>
+                </div>
+            </div>
+        </div>
+          
+      <div class="overflow-x-auto">
+        <div class="min-w-full overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-slate-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Phone</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Model</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">IMEI</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Total</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Date</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">User</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody" class="bg-white divide-y divide-gray-200">
+          <!-- Data will be injected here -->
+        </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-b-lg">
+        <div class="flex-1 flex justify-between sm:hidden">
+            <a href="#" id="prevPageMobile" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"> Previous </a>
+            <a href="#" id="nextPageMobile" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"> Next </a>
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p class="text-sm text-slate-700" id="paginationInfo">
+              Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">0</span> results
+            </p>
+          </div>
+          <div>
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" id="paginationNav">
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit Record Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 modal-container transform scale-95">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <h3 class="text-lg font-bold text-slate-800">Edit Receipt Record</h3>
+            <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <form id="editForm" class="space-y-4">
+            <input type="hidden" id="editReceiptNo">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="editCustomerName" class="block text-sm font-medium text-gray-700">Customer Name</label>
+                    <input type="text" id="editCustomerName" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="editCustomerPhone" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input type="tel" id="editCustomerPhone" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="editModel" class="block text-sm font-medium text-gray-700">Model</label>
+                    <input type="text" id="editModel" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="editImei" class="block text-sm font-medium text-gray-700">IMEI</label>
+                    <input type="text" id="editImei" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                <div>
+                    <label for="editTotal" class="block text-sm font-medium text-gray-700">Total Amount</label>
+                    <input type="number" id="editTotal" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+                 <div>
+                    <label for="editUser" class="block text-sm font-medium text-gray-700">User</label>
+                    <input type="text" id="editUser" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-teal-500 focus:border-teal-500">
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" id="cancelEditBtn" class="bg-slate-200 text-slate-800 py-2 px-4 rounded-md font-medium hover:bg-slate-300 transition">Cancel</button>
+                <button type="submit" class="bg-teal-600 text-white py-2 px-4 rounded-md font-medium hover:bg-teal-700 transition">Save Changes</button>
+            </div>
+        </form>
+    </div>
+  </div>
+
+  <script>
+    // Export functionality
+    const exportMenuButton = document.getElementById('export-menu-button');
+    const exportMenu = document.getElementById('export-menu');
+    exportMenuButton.addEventListener('click', () => exportMenu.classList.toggle('hidden'));
+    document.addEventListener('click', (event) => {
+      if (!exportMenu.contains(event.target) && !exportMenuButton.contains(event.target)) {
+        exportMenu.classList.add('hidden');
+      }
+    });
+    document.getElementById('export-excel').addEventListener('click', (e) => {
+      e.preventDefault();
+      const ws = XLSX.utils.json_to_sheet(filteredData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Receipts");
+      XLSX.writeFile(wb, `receipts_export_${new Date().toISOString()}.xlsx`);
+      exportMenu.classList.add('hidden');
+    });
+    document.getElementById('export-pdf').addEventListener('click', (e) => {
+      e.preventDefault();
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.autoTable({
+        head: [['Name', 'Phone', 'Model', 'IMEI', 'Total', 'Date', 'User']],
+        body: filteredData.map(item => [item.name, item.phone, item.model, item.imei, `Ksh ${parseFloat(item.total || 0).toLocaleString()}`, item.date, item.user]),
+      });
+      doc.save(`receipts_export_${new Date().toISOString()}.pdf`);
+      exportMenu.classList.add('hidden');
+    });
+
+
+    // --- Main Data Handling Logic ---
+    let allData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    const searchInput = document.getElementById('searchInput');
+    const perPageSelect = document.getElementById('perPageSelect');
+    const salesDatepicker = document.getElementById('salesDatepicker');
+    const SHEETDB_URL = "https://sheetdb.io/api/v1/dfwkbspgeespy";
+    let salesChart, userSalesChart; // Chart instances
+
+    // --- Animated Counter Function ---
+    function animateValue(obj, start, end, duration, isCurrency = false) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const value = Math.floor(progress * (end - start) + start);
+            if (isCurrency) {
+              obj.innerHTML = `Ksh ${value.toLocaleString()}`;
+            } else {
+              obj.innerHTML = value.toLocaleString();
+            }
+            if (progress < 1) {
+              window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // --- Function to process data for stats and chart ---
+    function updateDashboard(data) {
+        const userSales = {};
+        const salesByDate = {};
+        
+        // Initialize last 7 days
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateString = d.toISOString().slice(0, 10);
+            salesByDate[dateString] = 0;
+        }
+
+        data.forEach(item => {
+            const total = parseFloat(item.total) || 0;
+            const user = item.user || 'Unknown';
+            userSales[user] = (userSales[user] || 0) + total;
+            
+            const saleDate = item.date;
+            if (salesByDate.hasOwnProperty(saleDate)) {
+                salesByDate[saleDate] += total;
+            }
+        });
+
+        // Update sales period with today's data by default
+        updateSalesPeriod('today');
+        const avgSale = data.length > 0 ? (data.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0) / data.length) : 0;
+        animateValue(document.getElementById('avgSale'), 0, avgSale, 1500, true);
+        const topUser = Object.keys(userSales).length > 0 ? Object.entries(userSales).sort((a, b) => b[1] - a[1])[0][0] : '-';
+        document.getElementById('topUser').textContent = topUser;
+
+        // Update Charts
+        renderSalesChart(Object.keys(salesByDate).map(date => new Date(date).toLocaleDateString('en-US', { weekday: 'short' })), Object.values(salesByDate));
+        renderUserSalesChart(Object.keys(userSales), Object.values(userSales));
+    }
+    
+    // --- Function to calculate and display sales for a selected date ---
+    function calculateSalesForDate(selectedDate) {
+        if (!selectedDate) {
+            document.getElementById('selectedDaySales').textContent = 'Ksh 0';
+            return;
+        }
+        const salesOnDate = allData.filter(item => item.date === selectedDate);
+        const totalSales = salesOnDate.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0);
+        
+        animateValue(document.getElementById('selectedDaySales'), 0, totalSales, 1000, true);
+    }
+
+    // --- Function to render the sales LINE chart ---
+    function renderSalesChart(labels, data) {
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        if (salesChart) salesChart.destroy();
+        salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sales (Ksh)',
+                    data: data,
+                    backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                    borderColor: '#0d9488',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#0d9488',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { callback: value => 'Ksh ' + value.toLocaleString() } } },
+                plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => 'Sales: Ksh ' + context.parsed.y.toLocaleString() } } }
+            }
+        });
+    }
+
+    // --- Function to render the user sales DOUGHNUT chart ---
+    function renderUserSalesChart(labels, data) {
+        const ctx = document.getElementById('userSalesChart').getContext('2d');
+        if (userSalesChart) userSalesChart.destroy();
+        userSalesChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sales by User',
+                    data: data,
+                    backgroundColor: [
+                        '#14b8a6', '#f97316', '#ef4444', '#3b82f6', '#8b5cf6',
+                    ],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) { label += ': '; }
+                                if (context.parsed !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KSH' }).format(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderTable() {
+      const table = document.getElementById("adminTableBody");
+      table.innerHTML = "";
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedData = filteredData.slice(startIndex, endIndex);
+
+      paginatedData.forEach(entry => {
+        const receiptNo = entry.receipt_no || '';
+        const row = `
+          <tr class="hover:bg-slate-50">
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${entry.name || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${entry.phone || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${entry.model || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${entry.imei || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-800">Ksh ${parseFloat(entry.total || 0).toLocaleString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">${entry.date || ''}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+              <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-teal-100 text-teal-800">${entry.user || ''}</span>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <button onclick="openEditModal('${receiptNo}')" class="text-indigo-600 hover:text-indigo-900" title="Edit"><i class="fas fa-edit"></i></button>
+                <button onclick="deleteRecord('${receiptNo}')" class="text-red-600 hover:text-red-900 ml-4" title="Delete"><i class="fas fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+        table.insertAdjacentHTML("beforeend", row);
+      });
+    }
+
+    function setupPagination() {
+        const paginationNav = document.getElementById('paginationNav');
+        const paginationInfo = document.getElementById('paginationInfo');
+        paginationNav.innerHTML = '';
+        const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+        const prevBtn = document.createElement('a');
+        prevBtn.href = '#';
+        prevBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50';
+        prevBtn.innerHTML = '<span class="sr-only">Previous</span><i class="fas fa-chevron-left h-5 w-5"></i>';
+        prevBtn.onclick = (e) => { e.preventDefault(); if(currentPage > 1) goToPage(currentPage - 1); };
+        paginationNav.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+            const pageBtn = document.createElement('a');
+            pageBtn.href = '#';
+            pageBtn.className = `relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium pagination-btn ${i === currentPage ? 'active' : 'text-gray-700 hover:bg-gray-50'}`;
+            pageBtn.textContent = i;
+            pageBtn.onclick = (e) => { e.preventDefault(); goToPage(i); };
+            paginationNav.appendChild(pageBtn);
+        }
+
+        const nextBtn = document.createElement('a');
+        nextBtn.href = '#';
+        nextBtn.className = 'relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50';
+        nextBtn.innerHTML = '<span class="sr-only">Next</span><i class="fas fa-chevron-right h-5 w-5"></i>';
+        nextBtn.onclick = (e) => { e.preventDefault(); if(currentPage < totalPages) goToPage(currentPage + 1); };
+        paginationNav.appendChild(nextBtn);
+
+        const startItem = filteredData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0;
+        const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
+        paginationInfo.innerHTML = `Showing <span class="font-medium">${startItem}</span> to <span class="font-medium">${endItem}</span> of <span class="font-medium">${filteredData.length}</span> results`;
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        renderTable();
+        setupPagination();
+    }
+
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        filteredData = allData.filter(entry => 
+            Object.values(entry).some(val => 
+                String(val).toLowerCase().includes(searchTerm)
+            )
+        );
+        goToPage(1);
+    });
+
+    perPageSelect.addEventListener('change', (e) => {
+        itemsPerPage = parseInt(e.target.value);
+        goToPage(1);
+    });
+
+    salesDatepicker.addEventListener('change', (e) => {
+        calculateSalesForDate(e.target.value);
+    });
+
+    function updateSalesPeriod(period) {
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        let periodFilteredData = [];
+
+        switch(period) {
+            case 'today':
+                periodFilteredData = allData.filter(item => item.date === todayStr);
+                break;
+            case 'week':
+                const weekAgo = new Date();
+                weekAgo.setDate(today.getDate() - 7);
+                periodFilteredData = allData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return itemDate >= weekAgo && itemDate <= today;
+                });
+                break;
+            case 'month':
+                const monthAgo = new Date();
+                monthAgo.setMonth(today.getMonth() - 1);
+                periodFilteredData = allData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return itemDate >= monthAgo && itemDate <= today;
+                });
+                break;
+            case 'year':
+                const yearAgo = new Date();
+                yearAgo.setFullYear(today.getFullYear() - 1);
+                periodFilteredData = allData.filter(item => {
+                    const itemDate = new Date(item.date);
+                    return itemDate >= yearAgo && itemDate <= today;
+                });
+                break;
+            case 'all':
+                periodFilteredData = [...allData];
+                break;
+        }
+
+        const periodSales = periodFilteredData.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0);
+        animateValue(document.getElementById('salesPeriodValue'), 0, periodSales, 1000, true);
+        
+        // Update total receipts based on all time
+        animateValue(document.getElementById('totalReceipts'), 0, allData.length, 1000);
+        const avgSale = allData.length > 0 ? (allData.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0) / allData.length) : 0;
+        animateValue(document.getElementById('avgSale'), 0, avgSale, 1000, true);
+    }
+
+    document.getElementById('salesPeriod').addEventListener('change', (e) => {
+        updateSalesPeriod(e.target.value);
+    });
+
+    async function loadAdminData() {
+      try {
+        const res = await fetch(SHEETDB_URL);
+        allData = await res.json();
+        allData.forEach(item => item.total = parseFloat(item.total) || 0);
+        filteredData = [...allData];
+        goToPage(1);
+        updateDashboard(allData);
+        salesDatepicker.value = new Date().toISOString().slice(0,10);
+        calculateSalesForDate(salesDatepicker.value); // Calculate for today on load
+      } catch (err) {
+        console.error("❌ Failed to load data:", err);
+      }
+    }
+    
+    // --- CRUD Functionality ---
+    const editModal = document.getElementById('editModal');
+    const editForm = document.getElementById('editForm');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+    window.openEditModal = (receiptNo) => {
+        const record = allData.find(item => item.receipt_no === receiptNo);
+        if (!record) {
+            alert('Record not found!');
+            return;
+        }
+        
+        document.getElementById('editReceiptNo').value = record.receipt_no;
+        document.getElementById('editCustomerName').value = record.name || '';
+        document.getElementById('editCustomerPhone').value = record.phone || '';
+        document.getElementById('editModel').value = record.model || '';
+        document.getElementById('editImei').value = record.imei || '';
+        document.getElementById('editTotal').value = record.total || 0;
+        document.getElementById('editUser').value = record.user || '';
+
+        editModal.classList.remove('hidden');
+    };
+
+    const closeEditModal = () => {
+        editModal.classList.add('hidden');
+    };
+    closeModalBtn.addEventListener('click', closeEditModal);
+    cancelEditBtn.addEventListener('click', closeEditModal);
+
+    editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const receiptNo = document.getElementById('editReceiptNo').value;
+        const updatedData = {
+            name: document.getElementById('editCustomerName').value,
+            phone: document.getElementById('editCustomerPhone').value,
+            model: document.getElementById('editModel').value,
+            imei: document.getElementById('editImei').value,
+            total: document.getElementById('editTotal').value,
+            user: document.getElementById('editUser').value,
+        };
+
+        try {
+            const response = await fetch(`${SHEETDB_URL}/receipt_no/${receiptNo}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: updatedData })
+            });
+            if (!response.ok) throw new Error('Failed to update record.');
+            
+            alert('Record updated successfully!');
+            closeEditModal();
+            loadAdminData();
+        } catch (error) {
+            alert(`Error updating record: ${error.message}`);
+        }
+    });
+
+    window.deleteRecord = async (receiptNo) => {
+        if (!confirm(`Are you sure you want to delete receipt ${receiptNo}? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${SHEETDB_URL}/receipt_no/${receiptNo}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) throw new Error('Failed to delete record.');
+            
+            alert('Record deleted successfully!');
+            loadAdminData();
+        } catch (error) {
+            alert(`Error deleting record: ${error.message}`);
+        }
+    };
+
+    loadAdminData();
+  </script>
+</body>
+</html>
