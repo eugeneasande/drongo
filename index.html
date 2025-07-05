@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update Clock
         timeEl.textContent = now.toLocaleTimeString('en-US');
         dateEl.textContent = now.toLocaleDateString('en-GB', {
-            day: 'numeric', month: 'short', year: 'numeric'
+            weekday: 'long', day: 'numeric', month: 'short', year: 'numeric'
         });
     }
     setInterval(updateClockAndGreeting, 1000);
