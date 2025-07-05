@@ -37,6 +37,18 @@
     .modal-container {
         transition: transform 0.3s ease;
     }
+    .loader {
+        border: 4px solid #f3f3f3; /* Light grey */
+        border-top: 4px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
     /* Custom Scrollbar */
     ::-webkit-scrollbar {
       width: 8px;
@@ -55,16 +67,16 @@
     @media print {
       .no-print { display: none !important; }
       body { background-color: white; margin: 0; padding: 0; }
-      #zReportModal .modal-container {
+      #zReportModal .modal-container, #aiInsightsModal .modal-container {
         max-width: 100% !important;
         width: 100% !important;
         box-shadow: none;
         border: none;
       }
-      main, header, #editModal {
+      main, header, #editModal, #infoModal {
         display: none;
       }
-      #zReportModal {
+      #zReportModal, #aiInsightsModal {
         position: absolute;
         left: 0;
         top: 0;
@@ -102,9 +114,9 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 no-print">
     
     <!-- Animated Stats Section -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <!-- Sales Period Card -->
-      <div class="stat-card bg-white rounded-lg shadow p-5">
+      <div class="stat-card bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between">
             <p class="text-sm font-medium text-slate-500">Sales</p>
             <select id="salesPeriod" class="border-gray-300 rounded-md shadow-sm text-xs p-1 bg-slate-50 focus:ring-teal-500 focus:border-teal-500">
@@ -115,25 +127,25 @@
               <option value="all">All Time</option>
             </select>
         </div>
-        <p id="salesPeriodValue" class="text-3xl font-bold text-teal-600 mt-2">0</p>
+        <p id="salesPeriodValue" class="text-2xl sm:text-3xl font-bold text-teal-600 mt-2">0</p>
       </div>
       <!-- Total Receipts Card -->
-      <div class="stat-card bg-white rounded-lg shadow p-5">
-          <p class="text-sm font-medium text-slate-500">Total Receipts</p>
-          <p id="totalReceipts" class="text-3xl font-bold text-slate-900 mt-2">0</p>
+      <div class="stat-card bg-white rounded-lg shadow p-4">
+          <p class="text-sm font-medium text-slate-500">Receipts</p>
+          <p id="totalReceipts" class="text-2xl sm:text-3xl font-bold text-slate-900 mt-2">0</p>
       </div>
       <!-- Top User Card -->
-      <div class="stat-card bg-white rounded-lg shadow p-5">
+      <div class="stat-card bg-white rounded-lg shadow p-4">
           <p class="text-sm font-medium text-slate-500">Top User</p>
-          <p id="topUser" class="text-xl font-bold text-slate-900 mt-2">-</p>
+          <p id="topUser" class="text-lg sm:text-xl font-bold text-slate-900 mt-2 truncate">-</p>
       </div>
       <!-- Sales for Selected Day Card -->
-      <div class="stat-card bg-white rounded-lg shadow p-5">
+      <div class="stat-card bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between">
-            <p class="text-sm font-medium text-slate-500">Sales for Day</p>
+            <p class="text-sm font-medium text-slate-500">Day Sales</p>
             <input type="date" id="salesDatepicker" class="border-gray-300 rounded-md shadow-sm text-xs p-1 bg-slate-50 focus:ring-teal-500 focus:border-teal-500">
         </div>
-        <p id="selectedDaySales" class="text-3xl font-bold text-indigo-600 mt-2">Ksh 0</p>
+        <p id="selectedDaySales" class="text-2xl sm:text-3xl font-bold text-indigo-600 mt-2">Ksh 0</p>
       </div>
     </div>
 
@@ -158,45 +170,52 @@
 
     <!-- Receipt Records Table -->
     <div class="bg-white shadow-md rounded-lg">
-        <div class="p-4 flex flex-wrap md:flex-nowrap items-center justify-between gap-4 border-b border-slate-200">
+        <div class="p-4 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200">
             <h2 class="text-xl font-bold text-slate-800 flex-shrink-0">Receipt Records</h2>
             <!-- Search Input -->
-            <div class="relative w-full md:w-auto">
+            <div class="relative w-full sm:w-auto sm:flex-grow">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <i class="fas fa-search text-gray-400"></i>
               </div>
               <input type="text" id="searchInput"
-                class="pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm w-full sm:w-64 focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 placeholder-gray-400"
+                class="pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm w-full focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 placeholder-gray-400"
                 placeholder="Search records..." />
             </div>
             
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-between">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm text-slate-500">Show</span>
-                  <select class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md" id="perPageSelect">
+                  <span class="text-sm text-slate-500 hidden sm:inline">Show</span>
+                  <select class="block w-full pl-2 pr-7 py-2 text-base border-gray-300 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md" id="perPageSelect">
                     <option value="10">10</option>
                     <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
                   </select>
                 </div>
-                <!-- Z-Report Button -->
-                <button id="generateZReportBtn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                  <i class="fas fa-file-invoice-dollar mr-2"></i> Z-Report
-                </button>
-                <div class="relative inline-block text-left">
-                  <div>
-                    <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500" id="export-menu-button">
-                      Export
-                      <i class="fas fa-chevron-down -mr-1 ml-2 h-5 w-5"></i>
+                
+                <div class="flex items-center gap-2">
+                    <!-- AI Insights Button -->
+                    <button id="getAiInsightsBtn" class="inline-flex items-center justify-center px-3 py-2 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                        <i class="fas fa-wand-magic-sparkles sm:mr-2"></i><span class="hidden sm:inline">AI Insights</span>
                     </button>
-                  </div>
-                  <div class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10" id="export-menu">
-                    <div class="py-1">
-                        <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" id="export-excel">Export to Excel</a>
-                        <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" id="export-pdf">Export to PDF</a>
+                    <!-- Z-Report Button -->
+                    <button id="generateZReportBtn" class="inline-flex items-center justify-center px-3 py-2 sm:px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                      <i class="fas fa-file-invoice-dollar sm:mr-2"></i><span class="hidden sm:inline">Z-Report</span>
+                    </button>
+                    <div class="relative inline-block text-left">
+                      <div>
+                        <button type="button" class="inline-flex items-center justify-center px-3 py-2 sm:px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500" id="export-menu-button">
+                          <i class="fas fa-download sm:mr-2"></i> <span class="hidden sm:inline">Export</span>
+                          <i class="fas fa-chevron-down -mr-1 ml-1 sm:ml-2 h-5 w-5"></i>
+                        </button>
+                      </div>
+                      <div class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10" id="export-menu">
+                        <div class="py-1">
+                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" id="export-excel">Export to Excel</a>
+                            <a href="#" class="text-gray-700 block px-4 py-2 text-sm hover:bg-gray-100" id="export-pdf">Export to PDF</a>
+                        </div>
+                      </div>
                     </div>
-                  </div>
                 </div>
             </div>
         </div>
@@ -314,10 +333,41 @@
             </div>
 
             <div class="mt-8 flex justify-end gap-3 no-print">
-                <button type="button" id="closeZReportBtn" class="bg-slate-200 text-slate-800 py-2 px-4 rounded-md font-medium hover:bg-slate-300 transition">Close</button>
+                <button type="button" id="closeZReportBtn" class="bg-slate-200 text-slate-800 py-2 px-4 rounded-md font-medium hover:bg-slate-300 transition">Cancel</button>
                 <button type="button" id="printZReportBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md font-medium hover:bg-indigo-700 transition flex items-center">
                     <i class="fas fa-print mr-2"></i> Print Report
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Insights Modal -->
+    <div id="aiInsightsModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 modal-container transform scale-95">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-lg font-bold text-purple-800 flex items-center"><i class="fas fa-wand-magic-sparkles mr-3"></i>AI Business Insights</h3>
+                <button id="closeAiInsightsModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div id="aiInsightsContent" class="text-slate-700 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- AI content will be injected here -->
+            </div>
+            <div class="mt-6 flex justify-end">
+                 <button type="button" id="printAiInsightsBtn" class="bg-purple-600 text-white py-2 px-4 rounded-md font-medium hover:bg-purple-700 transition flex items-center no-print">
+                    <i class="fas fa-print mr-2"></i> Print Insights
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] hidden modal-overlay no-print">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 modal-container transform scale-95">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 id="infoModalTitle" class="text-lg font-bold text-slate-800 flex items-center"></h3>
+                <button id="closeInfoModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div id="infoModalContent" class="text-slate-600 text-sm">
+                <!-- Info content will be injected here -->
             </div>
         </div>
     </div>
@@ -776,6 +826,95 @@
     printZReportBtn.addEventListener('click', () => {
         window.print();
     });
+
+    // --- AI Insights Functionality ---
+    const aiInsightsModal = document.getElementById('aiInsightsModal');
+    const getAiInsightsBtn = document.getElementById('getAiInsightsBtn');
+    const closeAiInsightsModalBtn = document.getElementById('closeAiInsightsModalBtn');
+    const aiInsightsContent = document.getElementById('aiInsightsContent');
+    const printAiInsightsBtn = document.getElementById('printAiInsightsBtn');
+
+    getAiInsightsBtn.addEventListener('click', async () => {
+        aiInsightsModal.classList.remove('hidden');
+        aiInsightsContent.innerHTML = '<div class="flex justify-center items-center h-48"><div class="loader"></div></div>';
+
+        if (allData.length === 0) {
+            aiInsightsContent.innerHTML = '<p class="text-center text-red-500">No sales data available to analyze.</p>';
+            return;
+        }
+
+        // Prepare data for the prompt (e.g., last 100 records for brevity)
+        const dataForPrompt = allData.slice(-100).map(d => ({
+            model: d.model,
+            total: d.total,
+            date: d.date,
+            user: d.user
+        }));
+
+        const prompt = `
+            You are a business analyst for a phone and accessory shop in Kenya.
+            I will provide you with a JSON array of recent sales data. Your task is to analyze this data and provide actionable business insights in plain language, formatted in HTML with Tailwind CSS classes for styling.
+            
+            Focus on the following areas:
+            1.  **Top-Selling Products:** Identify the 3 best-selling items by revenue.
+            2.  **Sales Trends:** Are there specific days of the week where sales are higher?
+            3.  **User Performance:** Which salesperson ('user') is generating the most revenue?
+            4.  **Actionable Advice:** Based on these findings, provide 2-3 simple, actionable recommendations.
+            
+            Here is the sales data:
+            ${JSON.stringify(dataForPrompt)}
+
+            Present your response as a well-structured HTML report. Use headings (h4 with 'font-bold text-lg mb-2 text-slate-700'), lists (ul with 'list-disc list-inside space-y-1'), and bold text (strong tag) to make it readable. Use Tailwind CSS classes for styling.
+        `;
+
+        try {
+            const apiKey = ""; // Replace with your API key if needed
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const payload = { contents: [{ parts: [{ text: prompt }] }] };
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                let insightsText = result.candidates[0].content.parts[0].text;
+                // Clean up the response from markdown backticks if they exist
+                insightsText = insightsText.replace(/```html/g, '').replace(/```/g, '');
+                aiInsightsContent.innerHTML = insightsText;
+            } else {
+                throw new Error('No content received from AI.');
+            }
+
+        } catch (error) {
+            console.error('AI Insights Error:', error);
+            aiInsightsContent.innerHTML = `<p class="text-center text-red-500 font-semibold">Failed to generate insights. Please try again later. <br><small>${error.message}</small></p>`;
+        }
+    });
+
+    closeAiInsightsModalBtn.addEventListener('click', () => {
+        aiInsightsModal.classList.add('hidden');
+    });
+
+    printAiInsightsBtn.addEventListener('click', () => {
+        const originalContent = document.body.innerHTML;
+        const printContent = document.getElementById('aiInsightsContent').innerHTML;
+        document.body.innerHTML = printContent;
+        window.print();
+        document.body.innerHTML = originalContent;
+        // Re-initialize all event listeners after printing, as innerHTML change removes them
+        loadAdminData(); 
+    });
+
 
     loadAdminData();
   </script>
