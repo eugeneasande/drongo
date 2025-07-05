@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f1f5f9; /* slate-100 */
@@ -51,11 +52,34 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #64748b;
     }
+    @media print {
+      .no-print { display: none !important; }
+      body { background-color: white; margin: 0; padding: 0; }
+      #zReportModal .modal-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        box-shadow: none;
+        border: none;
+      }
+      main, header, #editModal {
+        display: none;
+      }
+      #zReportModal {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: block !important;
+        background-color: white;
+        z-index: 9999;
+      }
+    }
   </style>
 </head>
 <body class="min-h-screen">
   <!-- Admin Header -->
-  <header class="bg-white shadow-sm sticky top-0 z-20">
+  <header class="bg-white shadow-sm sticky top-0 z-20 no-print">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center py-4">
         <div class="flex items-center space-x-4">
@@ -75,7 +99,7 @@
   </header>
 
   <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 no-print">
     
     <!-- Animated Stats Section -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -156,6 +180,10 @@
                     <option value="100">100</option>
                   </select>
                 </div>
+                <!-- Z-Report Button -->
+                <button id="generateZReportBtn" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                  <i class="fas fa-file-invoice-dollar mr-2"></i> Z-Report
+                </button>
                 <div class="relative inline-block text-left">
                   <div>
                     <button type="button" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500" id="export-menu-button">
@@ -215,7 +243,7 @@
   </main>
 
   <!-- Edit Record Modal -->
-  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+  <div id="editModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-overlay no-print">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 modal-container transform scale-95">
         <div class="flex justify-between items-center mb-4 border-b pb-3">
             <h3 class="text-lg font-bold text-slate-800">Edit Receipt Record</h3>
@@ -256,6 +284,43 @@
         </form>
     </div>
   </div>
+
+  <!-- Z-Report Modal -->
+    <div id="zReportModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-overlay">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 modal-container transform scale-95">
+            <div id="zReportContent" class="text-slate-800">
+                <div class="text-center mb-6 border-b pb-4">
+                    <h2 class="text-2xl font-bold text-slate-900" style="font-family: 'Roboto Mono', monospace;">Z-REPORT (End of Day)</h2>
+                    <p class="text-sm text-slate-500" id="zReportDate"></p>
+                </div>
+                
+                <div class="space-y-4 text-sm">
+                    <div class="flex justify-between items-center bg-slate-100 p-3 rounded-md">
+                        <span class="font-semibold text-slate-600">TOTAL SALES:</span>
+                        <span class="font-bold text-xl text-teal-600" id="zReportTotalSales"></span>
+                    </div>
+                    <div class="flex justify-between items-center p-2">
+                        <span class="font-medium text-slate-500">Total Receipts:</span>
+                        <span class="font-semibold text-slate-700" id="zReportTotalReceipts"></span>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-md font-semibold text-slate-800 mb-2 border-t pt-4">Sales by User:</h3>
+                    <div id="zReportUserSales" class="space-y-2 text-sm">
+                        <!-- User sales data will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end gap-3 no-print">
+                <button type="button" id="closeZReportBtn" class="bg-slate-200 text-slate-800 py-2 px-4 rounded-md font-medium hover:bg-slate-300 transition">Close</button>
+                <button type="button" id="printZReportBtn" class="bg-indigo-600 text-white py-2 px-4 rounded-md font-medium hover:bg-indigo-700 transition flex items-center">
+                    <i class="fas fa-print mr-2"></i> Print Report
+                </button>
+            </div>
+        </div>
+    </div>
 
   <script>
     // Export functionality
@@ -661,6 +726,56 @@
             alert(`Error deleting record: ${error.message}`);
         }
     };
+
+    // --- Z-Report Functionality ---
+    const zReportModal = document.getElementById('zReportModal');
+    const generateZReportBtn = document.getElementById('generateZReportBtn');
+    const closeZReportBtn = document.getElementById('closeZReportBtn');
+    const printZReportBtn = document.getElementById('printZReportBtn');
+
+    generateZReportBtn.addEventListener('click', () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const todaysSales = allData.filter(item => item.date === today);
+
+        const totalSales = todaysSales.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
+        const totalReceipts = new Set(todaysSales.map(item => item.receipt_no)).size;
+
+        const salesByUser = todaysSales.reduce((acc, item) => {
+            const user = item.user || 'Unknown';
+            acc[user] = (acc[user] || 0) + (parseFloat(item.total) || 0);
+            return acc;
+        }, {});
+
+        document.getElementById('zReportDate').textContent = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
+        document.getElementById('zReportTotalSales').textContent = `Ksh ${totalSales.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        document.getElementById('zReportTotalReceipts').textContent = totalReceipts;
+        
+        const userSalesContainer = document.getElementById('zReportUserSales');
+        userSalesContainer.innerHTML = '';
+        if (Object.keys(salesByUser).length > 0) {
+            for (const [user, sales] of Object.entries(salesByUser)) {
+                const userHtml = `
+                    <div class="flex justify-between border-t border-slate-200 py-2">
+                        <span>${user}</span>
+                        <span class="font-semibold">Ksh ${sales.toLocaleString('en-US')}</span>
+                    </div>
+                `;
+                userSalesContainer.insertAdjacentHTML('beforeend', userHtml);
+            }
+        } else {
+            userSalesContainer.innerHTML = `<p class="text-slate-500 text-center py-2">No sales recorded today.</p>`;
+        }
+        
+        zReportModal.classList.remove('hidden');
+    });
+
+    closeZReportBtn.addEventListener('click', () => {
+        zReportModal.classList.add('hidden');
+    });
+
+    printZReportBtn.addEventListener('click', () => {
+        window.print();
+    });
 
     loadAdminData();
   </script>
