@@ -64,6 +64,12 @@
             <p class="text-teal-200 mt-1">Secure Login</p>
         </div>
         <div class="px-8 py-6">
+            <!-- Greeting and Date/Time Display -->
+            <div id="greetingContainer" class="text-center mb-6">
+                <h2 id="greeting" class="text-2xl font-semibold text-gray-700"></h2>
+                <p id="dateTime" class="text-sm text-gray-500 mt-1"></p>
+            </div>
+
             <!-- Avatar Quick Login -->
             <div id="avatarContainer" class="mb-4 text-center hidden">
                 <p class="text-sm font-medium text-gray-600 mb-3">Quick Login</p>
@@ -191,10 +197,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const toggleLoginPassword = document.getElementById('toggleLoginPassword');
 
+    // --- New DOM elements for Greeting and Date/Time ---
+    const greetingEl = document.getElementById('greeting');
+    const dateTimeEl = document.getElementById('dateTime');
+
     // --- Helper Functions ---
     const showMessage = (el, message, isError = false) => {
         el.textContent = message;
         el.className = `p-3 rounded-md mb-4 text-sm text-center ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`;
+        el.classList.remove('hidden');
         if (isError) {
             el.closest('.form-container').classList.add('shake');
             setTimeout(() => el.closest('.form-container').classList.remove('shake'), 500);
@@ -223,6 +234,31 @@ document.addEventListener('DOMContentLoaded', () => {
             loader.classList.add('hidden');
         }
     };
+
+    // --- Greeting and Date/Time Logic ---
+    const updateDateTime = () => {
+        const now = new Date();
+        const hour = now.getHours();
+
+        let greetingText;
+        if (hour < 12) {
+            greetingText = 'Good Morning';
+        } else if (hour < 18) {
+            greetingText = 'Good Afternoon';
+        } else {
+            greetingText = 'Good Evening';
+        }
+        greetingEl.textContent = greetingText;
+
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+        
+        const dateString = now.toLocaleDateString('en-US', dateOptions);
+        const timeString = now.toLocaleTimeString('en-US', timeOptions);
+
+        dateTimeEl.textContent = `${dateString} | ${timeString}`;
+    };
+
 
     // --- View Toggling ---
     showRegisterViewBtn.addEventListener('click', (e) => {
@@ -357,10 +393,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 showMessage(tokenMessage, 'Registration successful! You can now log in.', false);
                  setTimeout(() => {
-                    registerView.classList.add('hidden');
-                    loginView.classList.remove('hidden');
-                    loadAvatars();
-                }, 2000);
+                     registerView.classList.add('hidden');
+                     loginView.classList.remove('hidden');
+                     loadAvatars();
+                 }, 2000);
             } else {
                 showMessage(tokenMessage, result.message, true);
             }
@@ -373,6 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initial Load ---
     loadAvatars();
+    updateDateTime(); // Set initial time
+    setInterval(updateDateTime, 1000); // Update time every second
 });
 </script>
 </body>
