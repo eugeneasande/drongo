@@ -48,6 +48,28 @@
     .shake {
         animation: shake 0.5s;
     }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    #greetingContainer {
+        transition: background-color 0.5s, color 0.5s;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        animation: fadeIn 0.8s ease-out;
+    }
+    .evening-theme {
+        background: linear-gradient(135deg, #1e3a8a, #4c1d95); /* Dark blue to purple gradient */
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .evening-theme #greeting, .evening-theme #dateTime {
+        color: white;
+    }
+    #greeting i {
+        margin-right: 0.75rem;
+        color: #facc15; /* yellow-400 */
+        text-shadow: 0 0 8px #fde047;
+    }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4" oncontextmenu="return false">
@@ -200,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- New DOM elements for Greeting and Date/Time ---
     const greetingEl = document.getElementById('greeting');
     const dateTimeEl = document.getElementById('dateTime');
+    const greetingContainer = document.getElementById('greetingContainer');
 
     // --- Helper Functions ---
     const showMessage = (el, message, isError = false) => {
@@ -241,14 +264,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const hour = now.getHours();
 
         let greetingText;
+        let greetingIconHTML = '';
+
+        // Reset styles by removing theme class
+        greetingContainer.classList.remove('evening-theme');
+        greetingEl.classList.add('text-gray-700');
+        dateTimeEl.classList.add('text-gray-500');
+
+
         if (hour < 12) {
             greetingText = 'Good Morning';
+            // Example: Add a sun icon for morning
+            // greetingIconHTML = '<i class="fas fa-sun"></i>';
         } else if (hour < 18) {
             greetingText = 'Good Afternoon';
+            // Example: Add a cloud-sun icon for afternoon
+            // greetingIconHTML = '<i class="fas fa-cloud-sun"></i>';
         } else {
             greetingText = 'Good Evening';
+            greetingIconHTML = '<i class="fas fa-moon"></i>';
+            greetingContainer.classList.add('evening-theme');
+            // Colors are handled by the .evening-theme CSS class
+            greetingEl.classList.remove('text-gray-700');
+            dateTimeEl.classList.remove('text-gray-500');
         }
-        greetingEl.textContent = greetingText;
+        greetingEl.innerHTML = `${greetingIconHTML}${greetingText}`;
 
         const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
