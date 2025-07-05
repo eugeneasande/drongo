@@ -78,7 +78,7 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     
     <!-- Animated Stats Section -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <!-- Sales Period Card -->
       <div class="stat-card bg-white rounded-lg shadow p-5">
         <div class="flex items-center justify-between">
@@ -97,11 +97,6 @@
       <div class="stat-card bg-white rounded-lg shadow p-5">
           <p class="text-sm font-medium text-slate-500">Total Receipts</p>
           <p id="totalReceipts" class="text-3xl font-bold text-slate-900 mt-2">0</p>
-      </div>
-      <!-- Average Sale Card -->
-      <div class="stat-card bg-white rounded-lg shadow p-5">
-          <p class="text-sm font-medium text-slate-500">Average Sale</p>
-          <p id="avgSale" class="text-3xl font-bold text-slate-900 mt-2">0</p>
       </div>
       <!-- Top User Card -->
       <div class="stat-card bg-white rounded-lg shadow p-5">
@@ -349,8 +344,6 @@
 
         // Update sales period with today's data by default
         updateSalesPeriod('today');
-        const avgSale = data.length > 0 ? (data.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0) / data.length) : 0;
-        animateValue(document.getElementById('avgSale'), 0, avgSale, 1500, true);
         const topUser = Object.keys(userSales).length > 0 ? Object.entries(userSales).sort((a, b) => b[1] - a[1])[0][0] : '-';
         document.getElementById('topUser').textContent = topUser;
 
@@ -572,8 +565,6 @@
         
         // Update total receipts based on all time
         animateValue(document.getElementById('totalReceipts'), 0, allData.length, 1000);
-        const avgSale = allData.length > 0 ? (allData.reduce((acc, item) => acc + (parseFloat(item.total) || 0), 0) / allData.length) : 0;
-        animateValue(document.getElementById('avgSale'), 0, avgSale, 1000, true);
     }
 
     document.getElementById('salesPeriod').addEventListener('change', (e) => {
