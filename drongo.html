@@ -57,11 +57,46 @@
             border: 2px solid #14b8a6 !important;
             border-radius: 12px;
         }
-        #notificationModal {
+        #notificationModal, .modal-overlay {
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
         .notification-success { background-color: #10b981; }
         .notification-error { background-color: #f43f5e; }
+        .draft-badge {
+            position: absolute;
+            top: -5px;
+            right: -8px;
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        #longPressTooltip {
+            transition: opacity 0.2s ease-in-out;
+        }
+        #longPressTooltip::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 6px;
+            border-style: solid;
+        }
+        #longPressTooltip:not(.tooltip-bottom)::after {
+            top: 100%;
+            border-color: #1e293b transparent transparent transparent; /* bg-slate-800 */
+        }
+        #longPressTooltip.tooltip-bottom::after {
+            bottom: 100%;
+            border-color: transparent transparent #1e293b transparent;
+        }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
@@ -81,7 +116,7 @@
 </head>
 <body class="min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <div class="text-center mb-10">
+        <div class="text-center mb-10 no-print">
             <h1 class="text-3xl md:text-4xl font-bold text-teal-600 mb-2">DRONGO AUTONOMOUS</h1>
             <p class="text-slate-500">Electronic Receipt Generator</p>
         </div>
@@ -89,7 +124,13 @@
         <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-8">
             <!-- Receipt Form -->
             <div class="bg-white rounded-xl shadow-sm p-6 lg:col-span-2 no-print self-start border border-gray-200">
-                <h2 class="text-xl font-semibold text-slate-800 mb-6 border-b pb-3">Receipt Details</h2>
+                <div class="flex justify-between items-center mb-6 border-b pb-3">
+                    <h2 class="text-xl font-semibold text-slate-800">Receipt Details</h2>
+                    <button id="loadDraftsBtn" data-tooltip="Opens a list of previously saved drafts that you can load, edit, or delete." class="relative bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold py-2 px-4 rounded-lg transition text-sm">
+                        <i class="fas fa-inbox mr-2"></i>Load Drafts
+                        <span id="draftsBadge" class="draft-badge hidden">0</span>
+                    </button>
+                </div>
 
                 <div class="space-y-4">
                     
@@ -97,7 +138,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             <i class="fas fa-camera-retro mr-2 text-teal-500"></i>Capture Sales Data from Photo
                         </label>
-                        <input id="photoInput" type="file" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" />
+                        <input id="photoInput" type="file" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer" data-tooltip="Upload a photo of a product box or sales slip to automatically fill in customer and item details."/>
                         <div id="ocrStatus" class="text-xs text-gray-500 mt-2 h-4 flex items-center"></div>
                     </div>
 
@@ -115,7 +156,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
                         <div class="flex items-center gap-2">
                             <input id="customerId" type="text" class="flex-grow w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition" />
-                            <label for="idCaptureInput" class="flex-shrink-0 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-3 rounded-lg cursor-pointer transition">
+                            <label for="idCaptureInput" data-tooltip="Upload a photo of an ID card to automatically extract the ID number." class="flex-shrink-0 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-3 rounded-lg cursor-pointer transition">
                                 <i class="fas fa-id-card"></i>
                             </label>
                             <input id="idCaptureInput" type="file" accept="image/*" class="hidden" />
@@ -139,7 +180,12 @@
                     </div>
 
                     <div class="pt-4">
-                        <h3 class="font-medium text-gray-700 mb-2">Items</h3>
+                         <div class="flex justify-between items-center mb-2">
+                            <h3 class="font-medium text-gray-700">Items</h3>
+                            <button id="addItemBtn" data-tooltip="Adds a new empty item row to the receipt." class="bg-teal-100 text-teal-700 hover:bg-teal-200 font-semibold py-1 px-3 rounded-lg transition text-sm">
+                                <i class="fas fa-plus mr-1"></i> Add Item
+                            </button>
+                        </div>
                         <div id="itemsContainer" class="space-y-3"></div>
                     </div>
 
@@ -149,16 +195,19 @@
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 pt-4">
-                        <button id="generateBtn" class="col-span-2 bg-teal-600 hover:bg-teal-700 text-white py-2.5 px-4 rounded-lg font-medium transition flex items-center justify-center shadow-sm hover:shadow-md">
+                        <button id="generateBtn" data-tooltip="Finalizes and saves the receipt to the database, then clears the form for a new sale." class="col-span-2 bg-teal-600 hover:bg-teal-700 text-white py-2.5 px-4 rounded-lg font-medium transition flex items-center justify-center shadow-sm hover:shadow-md">
                             <i class="fas fa-receipt mr-2"></i> Generate & Save
                         </button>
-                        <button id="printBtn" class="bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
+                        <button id="saveDraftBtn" data-tooltip="Saves the current receipt details as a draft to load and complete later." class="col-span-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
+                            <i class="fas fa-save mr-2"></i> Save as Draft
+                        </button>
+                        <button id="printBtn" data-tooltip="Opens the browser's print dialog to print the physical receipt." class="bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
                             <i class="fas fa-print mr-2"></i> Print
                         </button>
-                        <button id="downloadBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
+                        <button id="downloadBtn" data-tooltip="Downloads the current receipt preview as a PNG image file." class="bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
                             <i class="fas fa-download mr-2"></i> Download Image
                         </button>
-                         <button id="newSaleBtn" class="col-span-2 bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
+                         <button id="newSaleBtn" data-tooltip="Clears all fields on the form to start a completely new sale." class="col-span-2 bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded-lg font-medium transition flex items-center justify-center no-print">
                             <i class="fas fa-sync-alt mr-2"></i> New Sale
                         </button>
                     </div>
@@ -219,7 +268,7 @@
     </div>
 
     <!-- Barcode Scanner Modal -->
-    <div id="scannerModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden">
+    <div id="scannerModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 hidden no-print">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-slate-800">Scan IMEI Barcode</h3>
@@ -232,10 +281,26 @@
         </div>
     </div>
 
+    <!-- Drafts Modal -->
+    <div id="draftsModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden modal-overlay no-print">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 transform scale-95">
+            <div class="flex justify-between items-center mb-4 border-b pb-3">
+                <h3 class="text-lg font-bold text-slate-800">Saved Drafts</h3>
+                <button id="closeDraftsModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <div id="draftsList" class="space-y-3 max-h-96 overflow-y-auto">
+                <!-- Drafts will be injected here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Custom Notification Modal -->
-    <div id="notificationModal" class="fixed top-5 right-5 p-4 rounded-lg text-white font-semibold shadow-lg z-[100] opacity-0 -translate-y-10 pointer-events-none">
+    <div id="notificationModal" class="fixed top-5 right-5 p-4 rounded-lg text-white font-semibold shadow-lg z-[100] opacity-0 -translate-y-10 pointer-events-none no-print">
         <span id="notificationMessage"></span>
     </div>
+
+    <!-- Long Press Tooltip -->
+    <div id="longPressTooltip" class="hidden absolute z-[110] bg-slate-800 text-white text-sm rounded-md px-3 py-1.5 shadow-lg pointer-events-none max-w-[250px] text-center opacity-0"></div>
 
 
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -244,6 +309,7 @@
         // --- URLs and Constants ---
         const GOOGLE_SHEET_URL = 'https://script.google.com/macros/s/AKfycbwYlY5Mvy6ALnCxtP1GlgoJGI3wMQqFT2QowWr-mTYvgARZs1T8sH9napnjDS1t09UX/exec';
         const GEMINI_PROXY_URL = 'https://gemini-proxy-server-7qvm.onrender.com/gemini-proxy';
+        let currentDraftId = null;
 
         // --- Custom Notification Function ---
         const notificationModal = document.getElementById('notificationModal');
@@ -380,24 +446,228 @@
             updateReceiptPreview();
         }
         
+        // --- DRAFTS FUNCTIONALITY ---
+        const saveDraftBtn = document.getElementById('saveDraftBtn');
+        const loadDraftsBtn = document.getElementById('loadDraftsBtn');
+        const draftsModal = document.getElementById('draftsModal');
+        const closeDraftsModalBtn = document.getElementById('closeDraftsModalBtn');
+        const draftsList = document.getElementById('draftsList');
+        const draftsBadge = document.getElementById('draftsBadge');
+
+        function getDrafts() {
+            return JSON.parse(localStorage.getItem('receiptDrafts') || '[]');
+        }
+
+        function saveDrafts(drafts) {
+            localStorage.setItem('receiptDrafts', JSON.stringify(drafts));
+            updateDraftsBadge();
+        }
+
+        function updateDraftsBadge() {
+            const drafts = getDrafts();
+            if (drafts.length > 0) {
+                draftsBadge.textContent = drafts.length;
+                draftsBadge.classList.remove('hidden');
+            } else {
+                draftsBadge.classList.add('hidden');
+            }
+        }
+
+        saveDraftBtn.addEventListener('click', () => {
+            const customerName = document.getElementById('customerName').value.trim();
+            if (!customerName) {
+                showNotification('Please enter a customer name for the draft.', 'error');
+                return;
+            }
+
+            const items = [];
+            document.querySelectorAll('.item-row').forEach(row => {
+                items.push({
+                    desc: row.querySelector('.item-desc').value,
+                    imei: row.querySelector('.item-imei').value,
+                    qty: row.querySelector('.item-qty').value,
+                    price: row.querySelector('.item-price').value
+                });
+            });
+
+            const draft = {
+                id: currentDraftId || Date.now(),
+                customerName: customerName,
+                customerPhone: document.getElementById('customerPhone').value,
+                customerId: document.getElementById('customerId').value,
+                user: document.getElementById('user').value,
+                notes: document.getElementById('notes').value,
+                items: items,
+                savedAt: new Date().toISOString()
+            };
+
+            let drafts = getDrafts();
+            const existingIndex = drafts.findIndex(d => d.id === draft.id);
+            if (existingIndex > -1) {
+                drafts[existingIndex] = draft; // Update existing draft
+            } else {
+                drafts.push(draft); // Add new draft
+            }
+            
+            saveDrafts(drafts);
+            showNotification(`Draft for "${customerName}" saved successfully!`);
+            resetForm();
+        });
+
+        loadDraftsBtn.addEventListener('click', () => {
+            const drafts = getDrafts();
+            draftsList.innerHTML = '';
+            if (drafts.length === 0) {
+                draftsList.innerHTML = '<p class="text-center text-slate-500">No saved drafts.</p>';
+            } else {
+                drafts.forEach(draft => {
+                    const draftEl = document.createElement('div');
+                    draftEl.className = 'flex justify-between items-center bg-slate-50 p-3 rounded-lg';
+                    draftEl.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${draft.customerName}</p>
+                            <p class="text-xs text-slate-500">Saved: ${new Date(draft.savedAt).toLocaleString()}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="load-draft-btn bg-green-500 hover:bg-green-600 text-white py-1 px-3 rounded" data-id="${draft.id}">Load</button>
+                            <button class="delete-draft-btn bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded" data-id="${draft.id}">Delete</button>
+                        </div>
+                    `;
+                    draftsList.appendChild(draftEl);
+                });
+            }
+            draftsModal.classList.remove('hidden');
+            draftsModal.querySelector('.transform').classList.replace('scale-95', 'scale-100');
+        });
+
+        closeDraftsModalBtn.addEventListener('click', () => {
+            draftsModal.classList.add('hidden');
+            draftsModal.querySelector('.transform').classList.replace('scale-100', 'scale-95');
+        });
+
+        draftsList.addEventListener('click', (e) => {
+            const draftId = e.target.dataset.id;
+            if (!draftId) return;
+
+            if (e.target.classList.contains('load-draft-btn')) {
+                const drafts = getDrafts();
+                const draftToLoad = drafts.find(d => d.id == draftId);
+                if (draftToLoad) {
+                    currentDraftId = draftToLoad.id;
+                    document.getElementById('customerName').value = draftToLoad.customerName;
+                    document.getElementById('customerPhone').value = draftToLoad.customerPhone;
+                    document.getElementById('customerId').value = draftToLoad.customerId;
+                    document.getElementById('user').value = draftToLoad.user;
+                    document.getElementById('notes').value = draftToLoad.notes;
+                    
+                    const itemsContainer = document.getElementById('itemsContainer');
+                    itemsContainer.innerHTML = '';
+                    draftToLoad.items.forEach(item => addItemRow(item.desc, item.imei, item.price, item.qty));
+                    
+                    updateReceiptPreview();
+                    draftsModal.classList.add('hidden');
+                    showNotification(`Draft for "${draftToLoad.customerName}" loaded.`);
+                }
+            } else if (e.target.classList.contains('delete-draft-btn')) {
+                let drafts = getDrafts();
+                drafts = drafts.filter(d => d.id != draftId);
+                saveDrafts(drafts);
+                e.target.closest('.flex.justify-between').remove(); // Visually remove it immediately
+                showNotification('Draft deleted.', 'error');
+            }
+        });
+
+        // --- LONG PRESS TOOLTIP FUNCTIONALITY ---
+        function initializeLongPressTooltips() {
+            const tooltipElement = document.getElementById('longPressTooltip');
+            if (!tooltipElement) return;
+
+            let pressTimer = null;
+            let currentTarget = null;
+
+            const startPress = (e) => {
+                // Only for touch devices and screens smaller than 768px (Tailwind's 'md' breakpoint)
+                if (window.innerWidth >= 768) return;
+
+                const button = e.target.closest('[data-tooltip]');
+                if (!button) return;
+
+                currentTarget = button;
+                const tooltipText = button.dataset.tooltip;
+                if (!tooltipText) return;
+
+                // Start a timer for the long press
+                pressTimer = setTimeout(() => {
+                    if (!currentTarget) return;
+                    const rect = currentTarget.getBoundingClientRect();
+                    tooltipElement.innerHTML = tooltipText;
+                    tooltipElement.classList.remove('hidden');
+                    
+                    // Position tooltip above the button
+                    const tooltipRect = tooltipElement.getBoundingClientRect();
+                    let top = rect.top - tooltipRect.height - 10; // 10px spacing
+                    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+
+                    // Adjust if tooltip goes off-screen
+                    if (left < 10) left = 10;
+                    if (left + tooltipRect.width > window.innerWidth - 10) {
+                        left = window.innerWidth - tooltipRect.width - 10;
+                    }
+                    if (top < 10) { // If not enough space above, show below
+                        top = rect.bottom + 10;
+                        tooltipElement.classList.add('tooltip-bottom');
+                    } else {
+                        tooltipElement.classList.remove('tooltip-bottom');
+                    }
+
+                    tooltipElement.style.top = `${top + window.scrollY}px`;
+                    tooltipElement.style.left = `${left}px`;
+                    tooltipElement.style.opacity = '1';
+
+                }, 800); // 800ms duration for a long press
+            };
+
+            const cancelPress = () => {
+                clearTimeout(pressTimer);
+                currentTarget = null;
+                tooltipElement.style.opacity = '0';
+                // Hide the element after the transition
+                setTimeout(() => {
+                    tooltipElement.classList.add('hidden');
+                }, 200);
+            };
+            
+            // Use event delegation on the body
+            document.body.addEventListener('touchstart', startPress, { passive: true });
+            document.body.addEventListener('touchend', cancelPress);
+            document.body.addEventListener('touchcancel', cancelPress);
+        }
+        
         // --- INITIALIZATION ---
         fetchLastReceiptNumber();
         document.getElementById('receiptDate').value = new Date().toISOString().split('T')[0];
+        updateDraftsBadge();
+        initializeLongPressTooltips(); // Initialize the new feature
         
-        function addItemRow(desc = '', imei = '', price = 0) {
+        function addItemRow(desc = '', imei = '', price = 0, qty = 1) {
             const itemId = Date.now();
             const itemHtml = `
                 <div class="item-row bg-slate-50 p-3 rounded-lg" data-id="${itemId}">
-                    <div class="grid grid-cols-1 md:grid-cols-11 gap-2 items-center">
-                        <div class="md:col-span-5"><input type="text" placeholder="Phone Model" class="item-desc w-full px-3 py-1 border border-gray-300 rounded-md text-sm" value="${desc}"></div>
-                        <div class="md:col-span-3 flex items-center">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                        <div class="md:col-span-4"><input type="text" placeholder="Phone Model" class="item-desc w-full px-3 py-1 border border-gray-300 rounded-md text-sm" value="${desc}"></div>
+                        <div class="md:col-span-4 flex items-center">
                             <input type="text" placeholder="IMEI" class="item-imei w-full px-3 py-1 border border-gray-300 rounded-l-md text-sm" value="${imei}">
-                            <button class="scan-btn bg-slate-200 hover:bg-slate-300 p-2 rounded-r-md" title="Scan Barcode">
+                            <button class="scan-btn bg-slate-200 hover:bg-slate-300 p-2 rounded-r-md" title="Scan Barcode" data-tooltip="Open camera to scan a product's IMEI barcode.">
                                 <i class="fas fa-barcode"></i>
                             </button>
                         </div>
-                        <div class="md:col-span-1"><input type="number" placeholder="Qty" class="item-qty w-full px-3 py-1 border border-gray-300 rounded-md text-sm" value="1" min="1"></div>
+                        <div class="md:col-span-1"><input type="number" placeholder="Qty" class="item-qty w-full px-3 py-1 border border-gray-300 rounded-md text-sm" value="${qty}" min="1"></div>
                         <div class="md:col-span-2"><input type="number" placeholder="Price" class="item-price w-full px-3 py-1 border border-gray-300 rounded-md text-sm" value="${price || ''}" min="0" step="0.01"></div>
+                        <div class="md:col-span-1 flex items-center justify-end">
+                            <button class="remove-item text-red-500 hover:text-red-700" data-tooltip="Remove this item from the receipt.">
+                                <i class="fas fa-times-circle"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>`;
             document.getElementById('itemsContainer').insertAdjacentHTML('beforeend', itemHtml);
@@ -405,9 +675,14 @@
         }
 
         // --- UI EVENT LISTENERS ---
+        document.getElementById('addItemBtn').addEventListener('click', () => addItemRow());
+        
         document.getElementById('itemsContainer').addEventListener('click', function (e) {
             if (e.target.closest('.scan-btn')) {
                 startScanner(e.target.closest('.scan-btn').previousElementSibling);
+            } else if (e.target.closest('.remove-item')) {
+                e.target.closest('.item-row').remove();
+                updateReceiptPreview();
             }
         });
         
@@ -433,16 +708,23 @@
             });
         });
 
-        document.getElementById('newSaleBtn').addEventListener('click', function() {
+        function resetForm() {
             document.getElementById('customerName').value = '';
             document.getElementById('customerPhone').value = '';
             document.getElementById('customerId').value = '';
             document.getElementById('user').value = '';
             document.getElementById('notes').value = '';
             document.getElementById('itemsContainer').innerHTML = '';
+            document.getElementById('ocrStatus').innerHTML = '';
+            document.getElementById('idOcrStatus').innerHTML = '';
+            document.getElementById('photoInput').value = '';
+            document.getElementById('idCaptureInput').value = '';
+            currentDraftId = null;
             addItemRow();
             fetchLastReceiptNumber();
-        });
+        }
+
+        document.getElementById('newSaleBtn').addEventListener('click', resetForm);
         
         document.getElementById('generateBtn').addEventListener('click', function () {
             updateReceiptPreview();
@@ -460,6 +742,11 @@
                 });
             });
 
+            if (items.length === 0 || items.every(i => !i.model && !i.price)) {
+                showNotification('Cannot save an empty receipt.', 'error');
+                return;
+            }
+
             const payload = items.map(item => ({
                 name: document.getElementById('customerName').value,
                 phone: document.getElementById('customerPhone').value,
@@ -476,14 +763,28 @@
                 receipt_no: document.getElementById('receiptNumber').value
             }));
 
+            this.disabled = true;
+            this.innerHTML = '<div class="loader"></div>';
+
             fetch(GOOGLE_SHEET_URL, { method: 'POST', body: JSON.stringify(payload) })
                 .then(res => res.json())
                 .then(res => {
                     showNotification('✅ Receipt saved successfully!');
-                    fetchLastReceiptNumber();
+                    // If this was a draft, delete it
+                    if (currentDraftId) {
+                        let drafts = getDrafts();
+                        drafts = drafts.filter(d => d.id != currentDraftId);
+                        saveDrafts(drafts);
+                    }
+                    resetForm();
                 })
                 .catch(err => {
                     showNotification(`❌ Failed to save receipt. ${err.message}`, 'error');
+                })
+                .finally(() => {
+                    const btn = document.getElementById('generateBtn');
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-receipt mr-2"></i> Generate & Save';
                 });
         });
         
