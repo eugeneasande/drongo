@@ -6,63 +6,36 @@
   <title>DRONGO AUTONOMOUS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400&display=swap');
     body {
       font-family: 'Inter', sans-serif;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
+      -webkit-user-select: none; user-select: none;
     }
-    .bg-drongo {
-      background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
-    }
-    .login-box {
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-    .input-field, .pin-field {
-      transition: all 0.3s ease;
-    }
-    .input-field:focus, .pin-field:focus {
-      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.5);
-    }
-    .user-profile-btn {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .user-profile-btn:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
+    .bg-drongo { background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); }
+    .login-box { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+    .input-field:focus { box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.5); }
     .user-profile-btn.active {
         transform: translateY(-2px);
         box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.7);
         background-color: #ccfbf1;
     }
-    #longPressTooltip {
-        transition: opacity 0.2s ease-in-out;
+    .toggle-switch {
+        transition: background-color 0.2s ease-in-out;
     }
-    #longPressTooltip::after {
-        content: '';
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        border-width: 6px;
-        border-style: solid;
-    }
-    #longPressTooltip:not(.tooltip-bottom)::after {
-        top: 100%;
-        border-color: #1e293b transparent transparent transparent; /* bg-slate-800 */
-    }
-    #longPressTooltip.tooltip-bottom::after {
-        bottom: 100%;
-        border-color: transparent transparent #1e293b transparent;
+    .toggle-circle {
+        transition: transform 0.2s ease-in-out;
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4" oncontextmenu="return false">
-  <div class="max-w-md w-full bg-white rounded-xl overflow-hidden login-box">
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4" oncontextmenu="return false">
+  <div class="max-w-md w-full bg-white rounded-xl overflow-hidden login-box relative">
+    <!-- Settings Button -->
+    <button id="settingsBtn" class="absolute top-4 right-4 text-slate-500 hover:text-teal-600 transition">
+        <i class="fas fa-cog text-xl"></i>
+    </button>
+
     <div class="bg-drongo py-6 px-8 text-center">
       <div class="flex justify-center mb-3">
         <div class="bg-white p-3 rounded-full shadow-md">
@@ -71,293 +44,254 @@
       </div>
       <h1 class="text-2xl font-bold text-white">DRONGO AUTONOMOUS</h1>
       <p class="text-teal-200 mt-1">Login Portal</p>
-      
-      <div id="clock-container" class="mt-4 text-teal-100 text-sm font-light" style="font-family: 'Roboto Mono', monospace;">
-          <span id="live-time">12:00:00 PM</span> - <span id="live-date">Jan 1, 2024</span>
-      </div>
     </div>
 
     <div class="px-8 py-6">
-      
       <div class="mb-6">
           <p class="text-center text-sm font-medium text-gray-600 mb-3">Select Profile</p>
           <div class="flex justify-center gap-6">
-              <button class="user-profile-btn text-center group p-2 rounded-lg" data-user="drongo" data-tooltip="Login as a standard user to create and manage receipts.">
-                  <div class="bg-slate-200 p-4 rounded-full group-hover:bg-teal-100">
-                      <i class="fas fa-user text-slate-600 text-2xl group-hover:text-teal-600"></i>
-                  </div>
+              <button class="user-profile-btn text-center group p-2 rounded-lg" data-user="drongo">
+                  <div class="bg-slate-200 p-4 rounded-full group-hover:bg-teal-100"><i class="fas fa-user text-slate-600 text-2xl group-hover:text-teal-600"></i></div>
                   <p class="mt-2 text-sm font-semibold text-slate-700">User</p>
               </button>
-              <button class="user-profile-btn text-center group p-2 rounded-lg" data-user="admin" data-tooltip="Login as an administrator to view sales data, charts, and manage all records.">
-                  <div class="bg-slate-200 p-4 rounded-full group-hover:bg-teal-100">
-                      <i class="fas fa-user-shield text-slate-600 text-2xl group-hover:text-teal-600"></i>
-                  </div>
+              <button class="user-profile-btn text-center group p-2 rounded-lg" data-user="admin">
+                  <div class="bg-slate-200 p-4 rounded-full group-hover:bg-teal-100"><i class="fas fa-user-shield text-slate-600 text-2xl group-hover:text-teal-600"></i></div>
                   <p class="mt-2 text-sm font-semibold text-slate-700">Admin</p>
               </button>
           </div>
       </div>
 
-      <div class="relative mb-4">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-200"></div>
-        </div>
-        <div class="relative flex justify-center text-sm">
-          <span id="login-method-title" class="px-2 bg-white text-gray-400">Login with Password</span>
-        </div>
-      </div>
-
-      <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm"></div>
+      <div id="message" class="hidden p-3 rounded-md mb-4 text-sm text-center"></div>
 
       <form id="loginForm" class="space-y-4">
         <input type="hidden" id="username" name="username">
         
-        <!-- Password Login View -->
         <div id="passwordLogin">
           <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-lock text-gray-400"></i>
-            </div>
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><i class="fas fa-lock text-gray-400"></i></div>
             <input type="password" id="password" name="password" class="input-field pl-10 pr-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 py-2 px-3 border" placeholder="Enter password">
-            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600" data-tooltip="Toggle password visibility.">
-              <i class="fas fa-eye"></i>
-            </button>
+            <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"><i class="fas fa-eye"></i></button>
           </div>
         </div>
 
-        <!-- PIN Login View -->
-        <div id="pinLogin" class="hidden">
-           <label for="pin" class="block text-sm font-medium text-gray-700 mb-1">4-Digit PIN</label>
-           <div class="relative">
-             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-               <i class="fas fa-key text-gray-400"></i>
-             </div>
-             <input type="password" id="pin" name="pin" class="pin-field pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 py-2 px-3 border text-center text-xl tracking-[1em]" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
-           </div>
-        </div>
-
-        <div class="pt-2">
-          <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition duration-150 ease-in-out" data-tooltip="Submit your credentials to log in.">
-            Sign in
-            <i class="fas fa-arrow-right ml-2"></i>
+        <div class="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button type="submit" id="passwordSubmitBtn" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+            Sign In with Password
+          </button>
+           <button type="button" id="biometricLoginBtn" class="w-full flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-slate-700 bg-slate-50 hover:bg-slate-100">
+            <i class="fas fa-fingerprint mr-2"></i> Use Biometrics
           </button>
         </div>
       </form>
-
-      <div class="mt-4 text-center">
-        <a href="#" id="toggleLoginMode" class="text-sm text-teal-600 hover:text-teal-500 font-medium" data-tooltip="Switch between password and PIN login methods.">Login with PIN</a>
-      </div>
     </div>
   </div>
 
-  <!-- Long Press Tooltip -->
-  <div id="longPressTooltip" class="hidden absolute z-[110] bg-slate-800 text-white text-sm rounded-md px-3 py-1.5 shadow-lg pointer-events-none max-w-[250px] text-center opacity-0"></div>
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+        <div class="flex justify-between items-center mb-4 border-b pb-3">
+            <h3 class="text-lg font-bold text-slate-800">Biometric Settings</h3>
+            <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <div id="settingsMessage" class="hidden p-3 rounded-md mb-4 text-sm text-center"></div>
+        <div class="space-y-4">
+            <div>
+                <label for="verifyPassword" class="block text-sm font-medium text-gray-700">Verify Password to Continue</label>
+                <input type="password" id="verifyPassword" class="mt-1 input-field block w-full rounded-md border-gray-300 shadow-sm py-2 px-3 border" placeholder="Enter current password">
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-700">Unlock with Biometrics</span>
+                <button id="biometricToggle" class="relative inline-flex items-center h-6 rounded-full w-11 toggle-switch bg-gray-200 disabled:opacity-50" disabled>
+                    <span class="sr-only">Enable Biometrics</span>
+                    <span class="inline-block w-4 h-4 transform bg-white rounded-full toggle-circle translate-x-1"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+  </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- User Credentials (including PINs) ---
-        const USERS = {
-            admin: { password: 'drongo@admin', pin: '2580' },
-            drongo: { password: 'waterbottle', pin: '1111' }
-        };
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- CONFIGURATION ---
+    const SERVER_URL = 'https://drongo-auth-server.onrender.com'; // Replace with your actual Render URL
+    const USERS = {
+        admin: { password: 'drongo@admin' },
+        drongo: { password: 'waterbottle' }
+    };
 
-        // --- DOM Elements ---
-        const usernameInput = document.getElementById('username');
-        const passwordInput = document.getElementById('password');
-        const pinInput = document.getElementById('pin');
-        const passwordLoginDiv = document.getElementById('passwordLogin');
-        const pinLoginDiv = document.getElementById('pinLogin');
-        const toggleLoginModeLink = document.getElementById('toggleLoginMode');
-        const loginMethodTitle = document.getElementById('login-method-title');
-        const profileButtons = document.querySelectorAll('.user-profile-btn');
-        const loginForm = document.getElementById('loginForm');
-        const errorMessageDiv = document.getElementById('error-message');
-        const togglePasswordBtn = document.getElementById('togglePassword');
-        const timeEl = document.getElementById('live-time');
-        const dateEl = document.getElementById('live-date');
+    // --- DOM ELEMENTS ---
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const profileButtons = document.querySelectorAll('.user-profile-btn');
+    const loginForm = document.getElementById('loginForm');
+    const messageDiv = document.getElementById('message');
+    const biometricLoginBtn = document.getElementById('biometricLoginBtn');
+    
+    // Settings Modal Elements
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const verifyPasswordInput = document.getElementById('verifyPassword');
+    const biometricToggle = document.getElementById('biometricToggle');
+    const settingsMessageDiv = document.getElementById('settingsMessage');
 
-        // --- Live Clock Functionality ---
-        function updateClock() {
-            const now = new Date();
-            timeEl.textContent = now.toLocaleTimeString('en-US');
-            dateEl.textContent = now.toLocaleDateString('en-GB', {
-                day: 'numeric', month: 'short', year: 'numeric'
-            });
+    const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+    let selectedUser = null;
+
+    // --- HELPER FUNCTIONS ---
+    const showMessage = (el, message, isError = false) => {
+        el.textContent = message;
+        el.className = `p-3 rounded-md mb-4 text-sm text-center ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-800'}`;
+    };
+
+    // --- INITIAL UI SETUP ---
+    const updateBiometricButtonVisibility = () => {
+        if (selectedUser && localStorage.getItem(`webauthn_registered_${selectedUser}`)) {
+            biometricLoginBtn.classList.remove('hidden');
+        } else {
+            biometricLoginBtn.classList.add('hidden');
         }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // --- User Profile Selection ---
-        profileButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                // Remove active state from all buttons
-                profileButtons.forEach(btn => btn.classList.remove('active'));
-                // Add active state to the clicked button
-                button.classList.add('active');
-                
-                const user = button.dataset.user;
-                usernameInput.value = user;
-                
-                // Focus the appropriate input field
-                if (!pinLoginDiv.classList.contains('hidden')) {
-                    pinInput.focus();
-                } else {
-                    passwordInput.focus();
-                }
-            });
+    };
+    
+    // --- PROFILE SELECTION ---
+    profileButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            profileButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            selectedUser = button.dataset.user;
+            usernameInput.value = selectedUser;
+            passwordInput.focus();
+            showMessage(messageDiv, `Selected profile: ${selectedUser.charAt(0).toUpperCase() + selectedUser.slice(1)}`);
+            updateBiometricButtonVisibility();
         });
-
-        // --- Login Mode Toggle ---
-        toggleLoginModeLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            const isPinMode = passwordLoginDiv.classList.toggle('hidden');
-            pinLoginDiv.classList.toggle('hidden');
-            
-            if (isPinMode) {
-                toggleLoginModeLink.textContent = 'Login with Password';
-                loginMethodTitle.textContent = 'Login with PIN';
-                pinInput.focus();
-            } else {
-                toggleLoginModeLink.textContent = 'Login with PIN';
-                loginMethodTitle.textContent = 'Login with Password';
-                passwordInput.focus();
-            }
-        });
-
-        // --- Login Form Submission ---
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const username = usernameInput.value.trim().toLowerCase();
-            const isPinMode = !pinLoginDiv.classList.contains('hidden');
-            
-            if (!username) {
-                showError('Please select a profile first.');
-                return;
-            }
-
-            const userCredentials = USERS[username];
-            let isValid = false;
-
-            if (isPinMode) {
-                const pin = pinInput.value;
-                if (userCredentials && userCredentials.pin === pin) {
-                    isValid = true;
-                }
-            } else {
-                const password = passwordInput.value;
-                if (userCredentials && userCredentials.password === password) {
-                    isValid = true;
-                }
-            }
-
-            if (isValid) {
-                localStorage.setItem('user', username);
-                localStorage.setItem('role', username === 'admin' ? 'admin' : 'user');
-                window.location.href = username === 'admin' ? 'admin.html' : 'drongo.html';
-            } else {
-                showError('Invalid credentials. Please try again.');
-            }
-        });
-
-        function showError(message) {
-            errorMessageDiv.textContent = message;
-            errorMessageDiv.classList.remove('hidden');
-            // Add shake animation
-            loginForm.parentElement.style.animation = 'shake 0.5s';
-            setTimeout(() => loginForm.parentElement.style.animation = '', 500);
-        }
-
-        // --- Password Visibility Toggle ---
-        togglePasswordBtn.addEventListener('click', function() {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.querySelector('i').classList.toggle('fa-eye');
-            this.querySelector('i').classList.toggle('fa-eye-slash');
-        });
-        
-        // --- LONG PRESS TOOLTIP FUNCTIONALITY ---
-        function initializeLongPressTooltips() {
-            const tooltipElement = document.getElementById('longPressTooltip');
-            if (!tooltipElement) return;
-
-            let pressTimer = null;
-            let currentTarget = null;
-
-            const startPress = (e) => {
-                // Only for touch devices
-                if (e.type.includes('mouse')) return;
-
-                const target = e.target.closest('[data-tooltip]');
-                if (!target) return;
-
-                currentTarget = target;
-                const tooltipText = target.dataset.tooltip;
-                if (!tooltipText) return;
-
-                // Start a timer for the long press
-                pressTimer = setTimeout(() => {
-                    if (!currentTarget) return;
-                    const rect = currentTarget.getBoundingClientRect();
-                    tooltipElement.innerHTML = tooltipText;
-                    tooltipElement.classList.remove('hidden');
-                    
-                    const tooltipRect = tooltipElement.getBoundingClientRect();
-                    let top = rect.top - tooltipRect.height - 10;
-                    let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
-
-                    if (left < 10) left = 10;
-                    if (left + tooltipRect.width > window.innerWidth - 10) {
-                        left = window.innerWidth - tooltipRect.width - 10;
-                    }
-                    if (top < 10) {
-                        top = rect.bottom + 10;
-                        tooltipElement.classList.add('tooltip-bottom');
-                    } else {
-                        tooltipElement.classList.remove('tooltip-bottom');
-                    }
-
-                    tooltipElement.style.top = `${top + window.scrollY}px`;
-                    tooltipElement.style.left = `${left}px`;
-                    tooltipElement.style.opacity = '1';
-
-                }, 800); // 800ms duration
-            };
-
-            const cancelPress = () => {
-                clearTimeout(pressTimer);
-                currentTarget = null;
-                tooltipElement.style.opacity = '0';
-                setTimeout(() => {
-                    tooltipElement.classList.add('hidden');
-                }, 200);
-            };
-            
-            document.body.addEventListener('touchstart', startPress, { passive: true });
-            document.body.addEventListener('touchend', cancelPress);
-            document.body.addEventListener('touchcancel', cancelPress);
-        }
-
-        // --- Developer Tools Prevention ---
-        document.addEventListener('keydown', function(e) {
-            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || (e.ctrlKey && e.keyCode === 85)) {
-                e.preventDefault();
-            }
-        });
-
-        // --- Animation Style ---
-        const style = document.createElement('style');
-        style.textContent = `
-          @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-          }
-        `;
-        document.head.appendChild(style);
-        
-        // --- Initialize Features ---
-        initializeLongPressTooltips();
     });
-  </script>
+
+    // --- PASSWORD LOGIN ---
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!selectedUser) {
+            showMessage(messageDiv, 'Please select a profile first.', true);
+            return;
+        }
+        const password = passwordInput.value;
+        if (USERS[selectedUser] && USERS[selectedUser].password === password) {
+            loginSuccess();
+        } else {
+            showMessage(messageDiv, 'Invalid password.', true);
+        }
+    });
+
+    const loginSuccess = () => {
+        showMessage(messageDiv, `Welcome, ${selectedUser}! Redirecting...`);
+        localStorage.setItem('user', selectedUser);
+        window.location.href = selectedUser === 'admin' ? 'admin.html' : 'drongo.html';
+    };
+
+    // --- SETTINGS MODAL LOGIC ---
+    settingsBtn.addEventListener('click', () => {
+        if (!selectedUser) {
+            showMessage(messageDiv, 'Please select a profile to change settings.', true);
+            return;
+        }
+        settingsModal.classList.remove('hidden');
+        verifyPasswordInput.value = '';
+        biometricToggle.disabled = true;
+        updateToggleState();
+        settingsMessageDiv.classList.add('hidden');
+    });
+
+    closeModalBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+    verifyPasswordInput.addEventListener('input', () => {
+        const password = verifyPasswordInput.value;
+        if (USERS[selectedUser] && USERS[selectedUser].password === password) {
+            biometricToggle.disabled = false;
+            showMessage(settingsMessageDiv, 'Password verified. You can now toggle biometrics.', false);
+        } else {
+            biometricToggle.disabled = true;
+        }
+    });
+
+    const updateToggleState = () => {
+        const isRegistered = !!localStorage.getItem(`webauthn_registered_${selectedUser}`);
+        biometricToggle.classList.toggle('bg-teal-500', isRegistered);
+        biometricToggle.classList.toggle('bg-gray-200', !isRegistered);
+        biometricToggle.querySelector('span').classList.toggle('translate-x-6', isRegistered);
+    };
+
+    // --- BIOMETRIC REGISTRATION/DEREGISTRATION ---
+    biometricToggle.addEventListener('click', async () => {
+        const isRegistered = !!localStorage.getItem(`webauthn_registered_${selectedUser}`);
+        if (isRegistered) {
+            // Deregister
+            localStorage.removeItem(`webauthn_registered_${selectedUser}`);
+            showMessage(settingsMessageDiv, 'Biometric login disabled for this user.', false);
+            updateToggleState();
+            updateBiometricButtonVisibility();
+        } else {
+            // Register
+            try {
+                const resp = await fetch(`${SERVER_URL}/generate-registration-options`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: selectedUser }),
+                });
+                const opts = await resp.json();
+                const attResp = await startRegistration(opts);
+                const verificationResp = await fetch(`${SERVER_URL}/verify-registration`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: selectedUser, response: attResp }),
+                });
+                const verificationJSON = await verificationResp.json();
+                if (verificationJSON && verificationJSON.verified) {
+                    localStorage.setItem(`webauthn_registered_${selectedUser}`, 'true');
+                    showMessage(settingsMessageDiv, 'Biometrics enabled!', false);
+                    updateToggleState();
+                    updateBiometricButtonVisibility();
+                } else {
+                    throw new Error('Server verification failed.');
+                }
+            } catch (error) {
+                showMessage(settingsMessageDiv, `Registration failed: ${error.message}`, true);
+            }
+        }
+    });
+
+    // --- BIOMETRIC LOGIN ---
+    biometricLoginBtn.addEventListener('click', async () => {
+        if (!selectedUser) {
+            showMessage(messageDiv, 'Please select a profile first.', true);
+            return;
+        }
+        try {
+            const resp = await fetch(`${SERVER_URL}/generate-authentication-options`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: selectedUser }),
+            });
+            const opts = await resp.json();
+            const authResp = await startAuthentication(opts);
+            const verificationResp = await fetch(`${SERVER_URL}/verify-authentication`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: selectedUser, response: authResp }),
+            });
+            const verificationJSON = await verificationResp.json();
+            if (verificationJSON && verificationJSON.verified) {
+                loginSuccess();
+            } else {
+                throw new Error('Authentication failed.');
+            }
+        } catch (error) {
+            showMessage(messageDiv, `Biometric login failed: ${error.message}`, true);
+        }
+    });
+    
+    // Set default state
+    updateBiometricButtonVisibility();
+});
+</script>
 </body>
 </html>
